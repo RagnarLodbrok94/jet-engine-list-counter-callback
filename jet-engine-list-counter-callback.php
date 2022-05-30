@@ -35,8 +35,19 @@ class Jet_Engine_List_Counter {
 			$this,
 			'list_counter_callback_controls'
 		) );
-	}
+		add_action(
+			'jet-engine/query-builder/query/before-get-items',
+			function ( $query ) {
+				if ( $query === false ) {
+					return 1;
+				}
 
+				$current_items_page = $query->get_current_items_page();
+				$items_per_page     = $query->get_items_per_page();
+
+				self::$counters[ $query->id ] = ( -- $current_items_page ) * $items_per_page;
+			} );
+	}
 
 	public function list_counter_callback( $callbacks ) {
 		$callbacks['jet_engine_list_counter'] = __( 'Listing’s counter', 'jet-engine-list-counter-callback' );
@@ -47,21 +58,11 @@ class Jet_Engine_List_Counter {
 	public static function get_index_of_listing_item( $value, $query_id ) {
 		$query = Manager::instance()->get_query_by_id( $query_id );
 
-		if ( $query !== false ) {
-			$arr = &self::$counters;
-
-			if ( array_key_exists( $query_id, $arr ) ) {
-				$arr[ $query_id ] = ++ $arr[ $query_id ];
-			} else {
-				$arr[ $query_id ] = 1;
-			}
-
-			if ( $query->get_items_page_count() < $arr[ $query_id ] ) {
-				$arr[ $query_id ] = 1;
-			}
-
-			return $arr[ $query_id ];
+		if ( $query === false ) {
+			return 1;
 		}
+
+		return ++ self::$counters[ $query_id ];
 	}
 
 	public function list_counter_callback_args( $args, $callback, $settings = array() ) {
