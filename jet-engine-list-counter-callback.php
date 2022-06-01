@@ -18,8 +18,8 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-function jet_engine_list_counter( $value, $query_id ) {
-	return \Jet_Engine_List_Counter::get_index_of_listing_item( $value, $query_id );
+function jet_engine_list_counter( $value, $query_id, $condition ) {
+	return \Jet_Engine_List_Counter::get_index_of_list_item( $value, $query_id, $condition );
 }
 
 class Jet_Engine_List_Counter {
@@ -38,14 +38,16 @@ class Jet_Engine_List_Counter {
 		add_action(
 			'jet-engine/query-builder/query/before-get-items',
 			function ( $query ) {
+
 				if ( $query === false ) {
 					return 1;
 				}
 
+				$id_hash            = $query->id . '_' . $query->get_query_hash();
 				$current_items_page = $query->get_current_items_page();
 				$items_per_page     = $query->get_items_per_page();
 
-				self::$counters[ $query->id ] = ( -- $current_items_page ) * $items_per_page;
+				self::$counters[ $id_hash ] = ( -- $current_items_page ) * $items_per_page;
 			} );
 	}
 
@@ -55,30 +57,52 @@ class Jet_Engine_List_Counter {
 		return $callbacks;
 	}
 
-	public static function get_index_of_listing_item( $value, $query_id ) {
+	public static function get_index_of_list_item( $value, $query_id, $condition ) {
 		$query = Manager::instance()->get_query_by_id( $query_id );
 
 		if ( $query === false ) {
 			return 1;
 		}
 
-		return ++ self::$counters[ $query_id ];
+		$id_hash = $query_id . '_' . $query->get_query_hash();
+		$counters_item = &self::$counters[ $id_hash ];
+
+		if ( $counters_item === null ) {
+			return 1;
+		}
+
+		if ( $condition === "yes" ) {
+			return $counters_item;
+		}
+
+		return ++ $counters_item;
 	}
 
 	public function list_counter_callback_args( $args, $callback, $settings = array() ) {
 		if ( 'jet_engine_list_counter' === $callback ) {
-			$args[] = isset( $settings['list_counter'] ) ? $settings['list_counter'] : '';
+			$args[] = $settings['list_counter_query'] ?? '';
+			$args[] = $settings['list_counter_parent_count'] ?? '';
 		}
 
 		return $args;
 	}
 
 	public function list_counter_callback_controls( $args = array() ) {
-		$args['list_counter'] = array(
-			'label'       => __( 'Enter query', 'jet-engine-list-counter-callback' ),
+		$args['list_counter_query'] = array(
+			'label'       => __( 'Select query', 'jet-engine-list-counter-callback' ),
 			'type'        => 'select',
-			'description' => esc_html__( 'Select the query to use', 'jet_engine_list_counter' ),
+			'description' => esc_html__( 'Select a query to count', 'jet_engine_list_counter' ),
 			'options'     => Manager::instance()->get_queries_for_options(),
+			'condition'   => array(
+				'dynamic_field_filter' => 'yes',
+				'filter_callback'      => array( 'jet_engine_list_counter' ),
+			),
+		);
+
+		$args['list_counter_parent_count'] = array(
+			'label'       => __( 'Parent counter', 'jet-engine-list-counter-callback' ),
+			'type'        => 'switcher',
+			'description' => esc_html__( 'If you need to create a nested list (like 1.1, 1.2, 1.3, ...) that will inherit the parent counter.', 'jet_engine_list_counter' ),
 			'condition'   => array(
 				'dynamic_field_filter' => 'yes',
 				'filter_callback'      => array( 'jet_engine_list_counter' ),
