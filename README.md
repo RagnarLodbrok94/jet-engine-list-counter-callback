@@ -2,7 +2,7 @@
 Adds a new callback to the Dynamic Field widget to create an ordered list or dynamic table.
 
 ## Instructions
-- Install and activate the plugin;
+- Download, install and activate plugin;
 - Go to the Elementor/Blocks editor, Dynamic Field widget and find *Listing’s counter* in the *Callback* option.
 
 ## Screenshots
