@@ -43,11 +43,10 @@ class Jet_Engine_List_Counter {
 					return 1;
 				}
 
-				$id_hash            = $query->id . '_' . $query->get_query_hash();
 				$current_items_page = $query->get_current_items_page();
 				$items_per_page     = $query->get_items_per_page();
 
-				self::$counters[ $id_hash ] = ( -- $current_items_page ) * $items_per_page;
+				self::$counters[ $query->id ] = ( -- $current_items_page ) * $items_per_page;
 			} );
 	}
 
@@ -57,21 +56,20 @@ class Jet_Engine_List_Counter {
 		return $callbacks;
 	}
 
-	public static function get_index_of_list_item( $value, $query_id, $condition ) {
+	public static function  get_index_of_list_item( $value, $query_id, $condition ) {
 		$query = Manager::instance()->get_query_by_id( $query_id );
 
 		if ( $query === false ) {
 			return 1;
 		}
 
-		$id_hash = $query_id . '_' . $query->get_query_hash();
-		$counters_item = &self::$counters[ $id_hash ];
+		$counters_item = &self::$counters[ $query_id ];
 
 		if ( $counters_item === null ) {
 			return 1;
 		}
 
-		if ( $condition === "yes" ) {
+		if ( $condition === 'yes' ) {
 			return $counters_item;
 		}
 
